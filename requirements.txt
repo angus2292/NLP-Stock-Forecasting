@@ -1,0 +1,9 @@
+ipykernel
+openpyxl
+numpy
+pandas
+matplotlib
+monpa
+scikit-learn
+imblearn
+xgboost
