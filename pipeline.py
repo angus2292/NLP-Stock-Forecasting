@@ -69,9 +69,9 @@ class Pipeline:
         評估模型績效, 包含CV acc, average acc, report, confusion_matrix
         '''
         print('----Trainig ----')
-        print(f"ACC: {round(np.mean(cross_val_score(self.model, self.X_train, self.y_train, cv = 5, scoring = 'accuracy')), 4)} | Recall :{round(np.mean(cross_val_score(self.model, self.X_train, self.y_train, cv = 5, scoring = 'recall')), 4)}" )
+        print(f"ACC: {round(accuracy_score(self.y_train, self.model.predict(self.X_train)), 4)} | Recall :{round(recall_score(self.y_train, self.model.predict(self.X_train), average = 'macro'), 4)}" )
         print('---- Testing ----')
-        print(f"ACC:{round(np.mean(cross_val_score(self.model, self.X_test, self.y_test, cv = 5, scoring = 'accuracy')), 4)} | Recall: {round(np.mean(cross_val_score(self.model, self.X_test, self.y_test, cv = 5, scoring = 'recall')), 4)}")
+        print(f"ACC: {round(accuracy_score(self.y_test, self.model.predict(self.X_test)), 4)} | Recall :{round(recall_score(self.y_test, self.model.predict(self.X_test), average = 'macro'), 4)}" )
         print(f'- Confusion_Matrix - \n {pd.DataFrame(np.array(confusion_matrix(self.y_test, self.y_pred, labels=[0,1])))}')
         print('----Forcasting Set----')
         print(f"ACC : {round(accuracy_score(self.val_y, self.val_y_pred), 4)} | Recall: {round(recall_score(self.val_y, self.val_y_pred , average = 'macro'), 4)}")
