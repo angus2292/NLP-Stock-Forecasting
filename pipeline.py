@@ -208,12 +208,6 @@ class Pipeline:
         self.val_x = vectorizer.fit_transform(self.val_df['cut'])
         self.val_x = pd.DataFrame(self.val_x.toarray(), columns=self.featureas, index = list(self.val_df['id']))
         self.val_y = self.val_df['漲跌']
-        if abs((len(self.val_y[self.val_y == 0 ])/ len(self.val_y)) - (len(self.val_y[self.val_y == 1 ])/ len(self.val_y))) > 0.3:
-            print('具有資料不平衡現象... 進行SMOTE處理...')
-            sm = SMOTE()
-            self.val_x, self.val_y = sm.fit_resample(self.val_x, self.val_y)
-            print(f"After SMOTE 測試看跌: {len(self.val_y[self.val_y== 0])} | percentage: {round(len(self.val_y[self.val_y == 0]) / len(self.val_y), 4)}")
-            print(f"After SMOTE 測試看漲: {len(self.val_y[self.val_y == 1])} | percentage: {round(len(self.val_y[self.val_y == 1]) / len(self.val_y), 4)}")
                       
     def xgbclassifier(self, GPU = False):
         # 選用XGBoost模型(機器學習的常勝軍)
