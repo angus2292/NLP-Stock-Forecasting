@@ -227,7 +227,7 @@ class Pipeline:
         # 績效評估
         self.model_performance()
         # 儲存模型
-        self.model.save_model(f'./Model/XGBoost_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}.h5')
+        self.model.save_model(f'./Model/{self.stock_key} XGBoost_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}.h5')
         
     def svmcalssifier(self):
         svm = SVC()
@@ -236,7 +236,7 @@ class Pipeline:
         self.val_y_pred = svm.predict(self.val_x)
         print('SVM:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/SVM {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} SVM {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
         
     def rf_classifier(self):
         rf = RandomForestClassifier()
@@ -245,7 +245,7 @@ class Pipeline:
         self.val_y_pred = rf.predict(self.val_x)
         print('RF:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/Random Forest {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} Random Forest {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
     
     def dt_classsifier(self):
         dt = DecisionTreeClassifier()
@@ -254,7 +254,7 @@ class Pipeline:
         self.val_y_pred = dt.predict(self.val_x)
         print('DT:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/CART {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} CART {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
         
     def knn_classifier(self):
         knn = KNeighborsClassifier()
@@ -263,7 +263,7 @@ class Pipeline:
         self.val_y_pred = knn.predict(self.val_x)
         print('KNN:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/KNN {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} KNN {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
         
     def proceed(self, GPU):
         self.generating_months()
