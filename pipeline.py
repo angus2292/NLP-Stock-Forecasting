@@ -1,13 +1,12 @@
 import numpy as np
 import pandas as pd
 import monpa
+import os
 from monpa import utils
-from tqdm import tqdm
 from glob import glob
 from dateutil.relativedelta import relativedelta
 from datetime import datetime
 import joblib
-import torch
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, recall_score
@@ -227,7 +226,7 @@ class Pipeline:
         # 績效評估
         self.model_performance()
         # 儲存模型
-        self.model.save_model(f'./Model/{self.stock_key} XGBoost_{datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}.h5')
+        self.model.save_model(f'./Model/{self.stock_key} XGBoost.h5')
         
     def svmcalssifier(self):
         svm = SVC()
@@ -236,7 +235,7 @@ class Pipeline:
         self.val_y_pred = svm.predict(self.val_x)
         print('SVM:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/{self.stock_key} SVM {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} SVM')
         
     def rf_classifier(self):
         rf = RandomForestClassifier()
@@ -245,7 +244,7 @@ class Pipeline:
         self.val_y_pred = rf.predict(self.val_x)
         print('RF:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/{self.stock_key} Random Forest {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} Random Forest')
     
     def dt_classsifier(self):
         dt = DecisionTreeClassifier()
@@ -254,7 +253,7 @@ class Pipeline:
         self.val_y_pred = dt.predict(self.val_x)
         print('DT:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/{self.stock_key} CART {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} CART')
         
     def knn_classifier(self):
         knn = KNeighborsClassifier()
@@ -263,7 +262,7 @@ class Pipeline:
         self.val_y_pred = knn.predict(self.val_x)
         print('KNN:')
         self.model_performance()
-        joblib.dump(self.model, f'./Model/{self.stock_key} KNN {datetime.now().strftime("%Y_%m_%d_%H_%M_%S")}')
+        joblib.dump(self.model, f'./Model/{self.stock_key} KNN')
         
     def proceed(self, GPU):
         self.generating_months()
@@ -275,7 +274,9 @@ class Pipeline:
             self.training_data_processing()
             self.forcasting_data_procrssing()
             self.training_info()
-            
+            self.path = f'./Model/{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+            if not os.path.isdir(self.path):
+                os.makedirs(self.path)
             # training
             self.xgbclassifier(GPU = GPU)
             self.rf_classifier()
