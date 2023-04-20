@@ -226,7 +226,7 @@ class Pipeline:
         # 績效評估
         self.model_performance()
         # 儲存模型
-        self.model.save_model(f'{self.path}/{self.stock_key} XGBoost.h5')
+        joblib.dump(self.model, f'{self.path}/{self.stock_key} XGBoost')
         
     def svmcalssifier(self):
         svm = SVC()
