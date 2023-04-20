@@ -226,7 +226,7 @@ class Pipeline:
         # 績效評估
         self.model_performance()
         # 儲存模型
-        joblib.dump(self.model, f'{self.path}/{self.stock_key} XGBoost')
+        joblib.dump(self.model, f'{self.path}/{self.stock_key} XGBoost.pkl')
         
     def svmcalssifier(self):
         svm = SVC()
@@ -235,7 +235,7 @@ class Pipeline:
         self.val_y_pred = svm.predict(self.val_x)
         print('SVM:')
         self.model_performance()
-        joblib.dump(self.model, f'{self.path}/{self.stock_key} SVM')
+        joblib.dump(self.model, f'{self.path}/{self.stock_key} SVM.pkl')
         
     def rf_classifier(self):
         rf = RandomForestClassifier()
@@ -244,7 +244,7 @@ class Pipeline:
         self.val_y_pred = rf.predict(self.val_x)
         print('RF:')
         self.model_performance()
-        joblib.dump(self.model, f'{self.path}/{self.stock_key} Random Forest')
+        joblib.dump(self.model, f'{self.path}/{self.stock_key} Random Forest.pkl')
     
     def dt_classsifier(self):
         dt = DecisionTreeClassifier()
@@ -253,7 +253,7 @@ class Pipeline:
         self.val_y_pred = dt.predict(self.val_x)
         print('DT:')
         self.model_performance()
-        joblib.dump(self.model, f'{self.path}/{self.stock_key} CART')
+        joblib.dump(self.model, f'{self.path}/{self.stock_key} CART.pkl')
         
     def knn_classifier(self):
         knn = KNeighborsClassifier()
@@ -262,7 +262,7 @@ class Pipeline:
         self.val_y_pred = knn.predict(self.val_x)
         print('KNN:')
         self.model_performance()
-        joblib.dump(self.model, f'{self.path}/{self.stock_key} KNN')
+        joblib.dump(self.model, f'{self.path}/{self.stock_key} KNN.pkl')
         
     def proceed(self, GPU):
         self.generating_months()
