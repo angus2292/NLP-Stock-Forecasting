@@ -121,7 +121,7 @@ class Pipeline:
 
         # 選出可能會用的features
         # self.text_df = self.text_df[['id', 'p_type', 's_name', '年月日', 'cut']]
-        self.text_df = self.text_df[['id','年月日', 'cut']]
+        self.text_df = self.text_df[['id','年月日', 'cut']].sort_values('年月日')
         return self.text_df
     
     def stock_df_processing(self):
@@ -155,7 +155,6 @@ class Pipeline:
         # 如 stock_df 3/14看跌則text_df 3/14的文章會被標記為看跌
         self.training_df = pd.merge(left = self.text_df,right =  self.stock_df, on = '年月日', how = 'left')
         y = self.training_df['漲跌'].map(lambda x: 1 if x == '看漲' else 0)
-        
         # 建構向量空間
         # 此處的input是斷詞後的每個詞
         vectorizer = TfidfVectorizer()
@@ -163,18 +162,18 @@ class Pipeline:
         self.featureas = vectorizer.get_feature_names_out()
         
         # 挑選大於 tf-idf threshold的關鍵字
-        df_tfidf = pd.DataFrame(tfidf.toarray(), columns=vectorizer.get_feature_names_out(), index = list(self.training_df['id']))
+        self.dfidf = pd.DataFrame(tfidf.toarray(), columns=vectorizer.get_feature_names_out(), index = list(self.training_df['id']))
+        
         sums = tfidf.sum(axis = 0)
         terms = vectorizer.get_feature_names_out() 
         data = []
         for col, term in enumerate(terms):
             data.append( (term, sums[0,col] ))
         ranking = pd.DataFrame(data, columns=['term','rank'])
-        
         # 此處25為 tf-idf 之 threshold
         ranking =ranking[ranking['rank'] > self.threshold].sort_values('rank', ascending=False).reset_index(drop = True)
-        df_tfidf = df_tfidf[ranking['term'].tolist()]
-        self.featureas = np.array(df_tfidf.columns)
+        self.dfidf = self.dfidf[ranking['term'].tolist()]
+        self.featureas = np.array(self.dfidf.columns)
         
         print(f"訓練看跌文章數: {len(y[y == 0])} | percentage: {len(y[y== 0]) / len(y)}")
         print(f"訓練看漲文章數: {len(y[y == 1])} | percentage: {len(y[y == 1]) / len(y)}")
@@ -182,13 +181,13 @@ class Pipeline:
         if abs((len(y[y == 0 ])/ len(y)) - (len(y[y == 1 ])/ len(y))) > 0.3:
             print('具有資料不平衡現象... 進行SMOTE處理...')
             sm = SMOTE()
-            df_tfidf, y = sm.fit_resample(df_tfidf, y)
+            self.dfidf, y = sm.fit_resample(self.dfidf, y)
             print(f"After SMOTE 訓練看跌: {len(y[y == 0])} | percentage: {len(y[y== 0]) / len(y)}")
             print(f"After SMOTE 訓練看漲: {len(y[y == 1])} | percentage: {len(y[y == 1]) / len(y)}")
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(df_tfidf, y, test_size=0.2)
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.dfidf, y, test_size=0.2)
         else:
         # 切分訓練資料
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(df_tfidf, y, test_size=0.2)  
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.dfidf, y, test_size=0.2)      
                     
     def forcasting_data_procrssing(self):
         val_data = pd.merge(self.text_file, self.stock_file[['年月日', '漲跌']], on='年月日')
@@ -198,12 +197,12 @@ class Pipeline:
         print(f'Forcasting data \n斷詞資料數: {self.val_df.shape[0]}')
         self.val_df['cut'] = None
         self.val_df['cut'] = self.val_df.chunk.apply(lambda x: self.cut_voc(x))
+        self.val_df = self.val_df[['id', '年月日', '漲跌', 'cut']]
         print('斷詞結束...')
         
         print(f"測試看跌文章數: {len(self.val_df[self.val_df['漲跌'] == 0])} | percentage: {round(len(self.val_df[self.val_df['漲跌'] == 0]) / len(self.val_df), 4)}")
         print(f"測試看漲文章數: {len(self.val_df[self.val_df['漲跌'] == 1])} | percentage: {round(len(self.val_df[self.val_df['漲跌'] == 1]) / len(self.val_df), 4)}")
         
-
         vectorizer = TfidfVectorizer(vocabulary=self.featureas)
         self.val_x = vectorizer.fit_transform(self.val_df['cut'])
         self.val_x = pd.DataFrame(self.val_x.toarray(), columns=self.featureas, index = list(self.val_df['id']))
@@ -228,6 +227,10 @@ class Pipeline:
         # 儲存模型
         joblib.dump(self.model, f'{self.path}/{self.stock_key} XGBoost.pkl')
         
+        predict_all = xgb.predict(self.dfidf)
+        self.training_df['XGB'] = predict_all
+        self.val_df['XGB'] = self.val_y_pred
+        
     def svmcalssifier(self):
         svm = SVC()
         self.model = svm.fit(self.X_train, self.y_train)
@@ -237,6 +240,11 @@ class Pipeline:
         self.model_performance()
         joblib.dump(self.model, f'{self.path}/{self.stock_key} SVM.pkl')
         
+        predict_all = svm.predict(self.dfidf)
+        self.training_df['SVM'] = predict_all
+        
+        self.val_df['SVM'] = self.val_y_pred
+        
     def rf_classifier(self):
         rf = RandomForestClassifier()
         self.model = rf.fit(self.X_train, self.y_train)
@@ -245,6 +253,11 @@ class Pipeline:
         print('RF:')
         self.model_performance()
         joblib.dump(self.model, f'{self.path}/{self.stock_key} Random Forest.pkl')
+        
+        predict_all = rf.predict(self.dfidf)
+        self.training_df['RF'] = predict_all
+        
+        self.val_df['RF'] = self.val_y_pred        
     
     def dt_classsifier(self):
         dt = DecisionTreeClassifier()
@@ -255,6 +268,11 @@ class Pipeline:
         self.model_performance()
         joblib.dump(self.model, f'{self.path}/{self.stock_key} CART.pkl')
         
+        predict_all = dt.predict(self.dfidf)
+        self.training_df['DT'] = predict_all
+        
+        self.val_df['DT'] = self.val_y_pred
+        
     def knn_classifier(self):
         knn = KNeighborsClassifier()
         self.model = knn.fit(self.X_train, self.y_train)
@@ -263,6 +281,53 @@ class Pipeline:
         print('KNN:')
         self.model_performance()
         joblib.dump(self.model, f'{self.path}/{self.stock_key} KNN.pkl')
+        
+        predict_all = knn.predict(self.dfidf)
+        self.training_df['KNN'] = predict_all
+        
+        self.val_df['KNN'] = self.val_y_pred
+        
+    def stock_predict(self):
+        train_predf = self.training_df.drop('cut', axis = 1)
+        train_predf = train_predf.dropna()
+        train_predf['漲跌'] = train_predf['漲跌'].apply(lambda x: 1 if x =='看漲' else 0)
+        t_stock = train_predf[['年月日', '漲跌']].copy()
+        rf = RandomForestClassifier()
+        rf.fit(train_predf.drop(['id', '年月日', '漲跌'], axis =1 ),train_predf[['漲跌']] )
+        ty_pred = rf.predict(train_predf.drop(['id', '年月日', '漲跌'], axis =1 ))
+        train_predf['Predict'] = ty_pred
+        train_predf = train_predf[['id', '年月日', '漲跌', 'Predict']]
+        train_predf= train_predf.groupby('年月日').Predict.value_counts().unstack().rename_axis(columns = None).reset_index()
+        train_predf.fillna(0, inplace = True)
+        train_predf.rename(columns= {0:'跌', 1:'漲'}, inplace = True)
+        train_predf['diff'] = train_predf['漲'] - train_predf['跌']
+        train_predf['Predict'] = train_predf['diff'].apply(lambda x: 1 if x >= 0 else 0)
+        train_predf = train_predf[['年月日', 'Predict']]
+        t_stock.drop_duplicates(subset = '年月日',inplace = True)
+        t_stock.reset_index(drop = True, inplace = True)
+        t_stock = pd.merge(t_stock,train_predf, on = '年月日', how = 'left')
+        t_stock['年月日'] = t_stock['年月日'] + pd.Timedelta(days = 1)
+        print(f"Stock Training ACC: {round(accuracy_score(t_stock['漲跌'], t_stock['Predict']), 3)} \n")
+        
+        predf = self.val_df.drop('cut', axis = 1)
+        predf = predf.dropna()
+        stock = predf[['年月日', '漲跌']].copy()
+        rf_stock = RandomForestClassifier()
+        rf_stock.fit(predf.drop(['id', '年月日', '漲跌'], axis = 1), predf[['漲跌']])
+        y_pred = rf_stock.predict(predf.drop(['id', '年月日', '漲跌'], axis = 1))
+        predf['Predict'] = y_pred
+        predf = predf[['id', '年月日', '漲跌', 'Predict']]
+        predf= predf.groupby('年月日').Predict.value_counts().unstack().rename_axis(columns = None).reset_index()
+        predf.fillna(0, inplace = True)
+        predf.rename(columns= {0:'跌', 1:'漲'}, inplace = True)
+        predf['diff'] = predf['漲'] - predf['跌']
+        predf['Predict'] = predf['diff'].apply(lambda x: 1 if x >= 0 else 0)
+        predf = predf[['年月日', 'Predict']]
+        stock.drop_duplicates(subset = '年月日',inplace = True)
+        stock.reset_index(drop = True, inplace = True)
+        stock = pd.merge(stock,predf, on = '年月日', how = 'left')
+        stock['年月日'] = stock['年月日'] + pd.Timedelta(days = 1)
+        print(f"Stock Forecasting ACC: {round(accuracy_score(stock['漲跌'], stock['Predict']), 3)} \n")
         
     def proceed(self, GPU):
         self.generating_months()
@@ -283,4 +348,5 @@ class Pipeline:
             self.dt_classsifier()
             self.knn_classifier()
             self.svmcalssifier()
-        
+            # Stock Forecasting
+            self.stock_predict()
