@@ -173,6 +173,7 @@ class Pipeline:
         # 此處25為 tf-idf 之 threshold
         ranking =ranking[ranking['rank'] > self.threshold].sort_values('rank', ascending=False).reset_index(drop = True)
         self.dfidf = self.dfidf[ranking['term'].tolist()]
+        data = self.dfidf.copy()
         self.featureas = np.array(self.dfidf.columns)
         
         print(f"訓練看跌文章數: {len(y[y == 0])} | percentage: {len(y[y== 0]) / len(y)}")
@@ -181,10 +182,10 @@ class Pipeline:
         if abs((len(y[y == 0 ])/ len(y)) - (len(y[y == 1 ])/ len(y))) > 0.3:
             print('具有資料不平衡現象... 進行SMOTE處理...')
             sm = SMOTE()
-            self.dfidf, y = sm.fit_resample(self.dfidf, y)
+            data, y = sm.fit_resample(data, y)
             print(f"After SMOTE 訓練看跌: {len(y[y == 0])} | percentage: {len(y[y== 0]) / len(y)}")
             print(f"After SMOTE 訓練看漲: {len(y[y == 1])} | percentage: {len(y[y == 1]) / len(y)}")
-            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.dfidf, y, test_size=0.2)
+            self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(data, y, test_size=0.2)
         else:
         # 切分訓練資料
             self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.dfidf, y, test_size=0.2)      
